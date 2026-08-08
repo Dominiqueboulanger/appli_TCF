@@ -233,12 +233,5 @@ def main_interface():
 
 
 # --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
-# En production sur Clever Cloud via Uvicorn, on appelle ui.run() 
-# mais sans forcer le port 8080 (laissez Uvicorn gérer le routage) ou 
-# utilisez la syntaxe standard de NiceGUI pour un déploiement ASGI :
-
-ui.run(
-    title="TCF Oral Examiner",
-    reload=False,
-    storage_secret="tcf_secret_key",
-)
+# Plus besoin de ui.run() : Uvicorn va charger directement l'objet 'app' 
+# importé depuis nicegui, et les décorateurs @ui.page s'enregistreront automatiquement.
