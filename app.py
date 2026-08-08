@@ -233,13 +233,12 @@ def main_interface():
 
 
 # --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
+# En production sur Clever Cloud via Uvicorn, on appelle ui.run() 
+# mais sans forcer le port 8080 (laissez Uvicorn gérer le routage) ou 
+# utilisez la syntaxe standard de NiceGUI pour un déploiement ASGI :
+
 ui.run(
     title="TCF Oral Examiner",
-    host="0.0.0.0",
-    port=int(os.environ.get("PORT", 8080)),
-    uvicorn_reload_includes=False,
     reload=False,
-    reconnect_timeout=30,
-    show=False,
     storage_secret="tcf_secret_key",
 )
