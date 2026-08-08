@@ -5,12 +5,8 @@ import pandas as pd
 from nicegui import ui, app  # <-- On importe 'app' depuis nicegui
 
 # --- 1. CONFIGURATION DES CHEMINS ---
-if len(sys.argv) > 2:
-    json_path = Path(sys.argv[1])
-    csv_path = Path(sys.argv[2])
-else:
-    json_path = Path("referentiel_tcf.json")
-    csv_path = Path("tcf_data.csv")
+json_path = Path("referentiel_tcf.json")
+csv_path = Path("tcf_data.csv")
 
 
 # --- 2. FONCTION DE COULEUR DU TEXTE PAR NIVEAU ---
