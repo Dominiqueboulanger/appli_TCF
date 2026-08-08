@@ -231,11 +231,5 @@ def main_interface():
                             make_eval_handler(idx)
                         )
 
-# --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
-ui.run(
-    title="TCF Oral Examiner",
-    reload=False,
-    reconnect_timeout=30,
-    show=False,
-    storage_secret="tcf_secret_key",
-)
+# --- 4. FIN DU FICHIER ---
+# Pas de ui.run() ici, uvicorn s'occupe de charger "app:app" grâce au Dockerfile.
