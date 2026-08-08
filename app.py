@@ -233,5 +233,12 @@ def main_interface():
 
 
 # --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
-# Plus besoin de ui.run() : Uvicorn va charger directement l'objet 'app' 
-# importé depuis nicegui, et les décorateurs @ui.page s'enregistreront automatiquement.
+if __name__ in {"__main__", "__mp_main__"}:
+    ui.run(
+        title="TCF Oral Examiner",
+        port=int(os.environ.get("PORT", 8080)),
+        reload=False,
+        reconnect_timeout=30,
+        show=False,
+        storage_secret="tcf_secret_key",
+    )
