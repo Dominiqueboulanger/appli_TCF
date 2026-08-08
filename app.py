@@ -233,15 +233,13 @@ def main_interface():
 
 
 # --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
-# En production sur Clever Cloud, Uvicorn lance l'application via "app:app".
-# On évite donc d'appeler ui.run() avec un port fixe qui entre en conflit avec Nginx.
-if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(
-        title="TCF Oral Examiner",
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8080)),
-        reload=False,
-        reconnect_timeout=30,
-        show=False,
-        storage_secret="tcf_secret_key",
-    )
+ui.run(
+    title="TCF Oral Examiner",
+    host="0.0.0.0",
+    port=int(os.environ.get("PORT", 8080)),
+    uvicorn_reload_includes=False,
+    reload=False,
+    reconnect_timeout=30,
+    show=False,
+    storage_secret="tcf_secret_key",
+)
