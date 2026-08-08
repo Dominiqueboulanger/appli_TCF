@@ -9,7 +9,6 @@ if len(sys.argv) > 2:
     json_path = Path(sys.argv[1])
     csv_path = Path(sys.argv[2])
 else:
-    # Chemin par défaut ou relatif si nécessaire
     json_path = Path("referentiel_tcf.json")
     csv_path = Path("tcf_data.csv")
 
@@ -231,5 +230,11 @@ def main_interface():
                             make_eval_handler(idx)
                         )
 
-# --- 4. FIN DU FICHIER ---
-# Pas de ui.run() ici, uvicorn s'occupe de charger "app:app" grâce au Dockerfile.
+# --- 4. LANCEMENT UNIVERSEL ---
+# On appelle ui.run() directement sans garde pour que Uvicorn puisse l'importer sans déclencher l'erreur.
+ui.run(
+    port=int(os.environ.get("PORT", 8080)),
+    host="0.0.0.0",
+    storage_secret="tcf_secret_key",
+    reload=False,
+)
