@@ -236,7 +236,6 @@ def main_interface():
 if __name__ in {"__main__", "__mp_main__"}:
     ui.run(
         title="TCF Oral Examiner",
-        port=int(os.environ.get("PORT", 8080)),
         reload=False,
         reconnect_timeout=30,
         show=False,
