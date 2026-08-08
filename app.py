@@ -1,8 +1,7 @@
 import os
 from pathlib import Path
-import sys
 import pandas as pd
-from nicegui import ui, app  # <-- On importe 'app' depuis nicegui
+from nicegui import ui, app
 
 # --- 1. CONFIGURATION DES CHEMINS ---
 json_path = Path("referentiel_tcf.json")
@@ -67,10 +66,6 @@ def main_interface():
         "evaluations": {},
     }
 
-    ui.label("Assistant d'Évaluation Orale - TCF").classes(
-        "text-2xl font-bold text-primary mb-2"
-    )
-
     header_refs = {}
     row_containers = []
 
@@ -84,11 +79,11 @@ def main_interface():
         c_comp = str(row_data.get("competence", "-"))
 
         if "niveau_label" in header_refs:
-            header_refs["niveau_label"].text = f"Niveau : {c_niv}"
+            header_refs["niveau_label"].text = c_niv
         if "tache_label" in header_refs:
-            header_refs["tache_label"].text = f"Tâche : {c_tach}"
+            header_refs["tache_label"].text = c_tach
         if "comp_label" in header_refs:
-            header_refs["comp_label"].text = f"Compétence : {c_comp}"
+            header_refs["comp_label"].text = c_comp
 
         for i, container in enumerate(row_containers):
             if i == state["selected_index"]:
@@ -106,14 +101,11 @@ def main_interface():
                     add="bg-white border-gray-200",
                 )
 
-    # --- BARRE DE SAUT / NAVIGATION RAPIDE PAR NIVEAU ---
+    # --- BARRE DE SAUT / NAVIGATION RAPIDE PAR NIVEAU & EN-TÊTE SUR UNE SEULE LIGNE ---
     with ui.card().classes(
-        "w-full p-3 mb-2 bg-gray-50 border border-gray-200 shadow-xs"
+        "w-full p-2 mb-2 bg-blue-50 border border-blue-200 shadow-sm"
     ):
         with ui.row().classes("w-full items-center justify-between gap-2"):
-            ui.label("Sauter au 1er descripteur du niveau :").classes(
-                "text-sm font-semibold text-gray-700"
-            )
 
             def on_jump_niveau(e):
                 nouveau_niveau = e.value
@@ -135,38 +127,26 @@ def main_interface():
                     options=niveaux_disponibles,
                     value=None,
                 )
-                .classes("bg-white rounded min-w-[120px]")
-                .props('dense outlined label="Choisir..."')
+                .classes("bg-white rounded min-w-[90px]")
+                .props('dense outlined label="Niveau..."')
                 .on_value_change(on_jump_niveau)
             )
 
-    # --- EN-TÊTE FIXE ---
-    with ui.card().classes(
-        "w-full p-4 mb-3 bg-blue-50 border border-blue-200 shadow-sm"
-    ):
-        with ui.row().classes(
-            "w-full items-center justify-between gap-4 flex-wrap"
-        ):
             row_data_init = df.iloc[state["selected_index"]]
             init_niv = str(row_data_init.get("niveau_cecrl", "-"))
             init_tach = str(row_data_init.get("tache", "-"))
             init_comp = str(row_data_init.get("competence", "-"))
 
-            header_refs["niveau_label"] = ui.label(f"Niveau : {init_niv}").classes(
-                "flex-1 min-w-[120px] px-3 py-2 bg-white rounded border text-blue-900"
-                " font-medium text-center shadow-xs"
+            header_refs["niveau_label"] = ui.label(init_niv).classes(
+                "px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs shrink-0"
             )
 
-            header_refs["tache_label"] = ui.label(f"Tâche : {init_tach}").classes(
-                "flex-1 min-w-[130px] px-3 py-2 bg-white rounded border text-blue-900"
-                " font-medium text-center shadow-xs"
+            header_refs["tache_label"] = ui.label(init_tach).classes(
+                "px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs shrink-0"
             )
 
-            header_refs["comp_label"] = ui.label(
-                f"Compétence : {init_comp}"
-            ).classes(
-                "flex-1 min-w-[150px] px-3 py-2 bg-white rounded border text-blue-900"
-                " font-medium text-center shadow-xs"
+            header_refs["comp_label"] = ui.label(init_comp).classes(
+                "flex-1 px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs truncate"
             )
 
     # --- LISTE DES DESCRIPTEURS ---
@@ -227,7 +207,6 @@ def main_interface():
                         )
 
 # --- 4. LANCEMENT UNIVERSEL ---
-# On appelle ui.run() directement sans garde pour que Uvicorn puisse l'importer sans déclencher l'erreur.
 ui.run(
     port=int(os.environ.get("PORT", 8080)),
     host="0.0.0.0",
