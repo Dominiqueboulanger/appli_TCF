@@ -231,13 +231,11 @@ def main_interface():
                             make_eval_handler(idx)
                         )
 
-
 # --- 4. CONFIGURATION ET LANCEMENT SERVEUR ---
-if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(
-        title="TCF Oral Examiner",
-        reload=False,
-        reconnect_timeout=30,
-        show=False,
-        storage_secret="tcf_secret_key",
-    )
+ui.run(
+    title="TCF Oral Examiner",
+    reload=False,
+    reconnect_timeout=30,
+    show=False,
+    storage_secret="tcf_secret_key",
+)
