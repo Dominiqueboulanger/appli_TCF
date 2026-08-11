@@ -63,7 +63,7 @@ def main_interface():
 
     state = {
         "selected_index": 0,
-        "evaluations": {},
+        "selected_rows": set(),  # Stocke les indices des boîtes cliquées (vertes)
     }
 
     header_refs = {}
@@ -86,24 +86,27 @@ def main_interface():
             header_refs["comp_label"].text = c_comp
 
         for i, container in enumerate(row_containers):
-            if i == state["selected_index"]:
+            if i == state["selected_index"] and scroll_to_item:
+                container.run_method(
+                    "scrollIntoView", {"behavior": "smooth", "block": "center"}
+                )
+
+    def refresh_row_styles():
+        for i, container in enumerate(row_containers):
+            if i in state["selected_rows"]:
                 container.classes(
                     remove="bg-white border-gray-200",
-                    add="bg-blue-50 border-blue-400 shadow-sm",
+                    add="bg-green-50 border-green-500 shadow-sm",
                 )
-                if scroll_to_item:
-                    container.run_method(
-                        "scrollIntoView", {"behavior": "smooth", "block": "center"}
-                    )
             else:
                 container.classes(
-                    remove="bg-blue-50 border-blue-400 shadow-sm",
+                    remove="bg-green-50 border-green-500 shadow-sm",
                     add="bg-white border-gray-200",
                 )
 
-    # --- BARRE DE SAUT / NAVIGATION RAPIDE PAR NIVEAU & EN-TÊTE SUR UNE SEULE LIGNE ---
+    # --- EN-TÊTE FIXE EN HAUT DE L'ÉCRAN ---
     with ui.card().classes(
-        "w-full p-2 mb-2 bg-blue-50 border border-blue-200 shadow-sm"
+        "w-full p-2 mb-2 bg-blue-50 border border-blue-200 shadow-sm sticky top-0 z-50"
     ):
         with ui.row().classes("w-full items-center justify-between gap-2"):
 
@@ -150,36 +153,34 @@ def main_interface():
             )
 
     # --- LISTE DES DESCRIPTEURS ---
-    with ui.card().classes("w-full p-4 shadow-md"):
+    with ui.card().classes("w-full p-3 shadow-md"):
         ui.label(f"Référentiel complet ({len(df)} descripteurs)").classes(
-            "font-bold text-lg mb-2"
+            "font-bold text-base mb-2"
         )
 
-        with ui.scroll_area().classes("w-full h-[64vh] pr-2"):
+        with ui.scroll_area().classes("w-full h-[70vh] pr-2"):
             for idx, row in df.iterrows():
                 desc = row.get("descripteur", "Description indisponible")
                 exemple = row.get("exemple", "")
                 niveau = row.get("niveau_cecrl", "")
 
                 color_class = get_level_text_color(niveau)
-                is_selected = idx == 0
-                bg_style = (
-                    "bg-blue-50 border-blue-400 shadow-sm"
-                    if is_selected
-                    else "bg-white border-gray-200"
-                )
 
                 def make_click_handler(i):
                     def handler():
                         state["selected_index"] = i
+                        if i in state["selected_rows"]:
+                            state["selected_rows"].remove(i)
+                        else:
+                            state["selected_rows"].add(i)
+                        refresh_row_styles()
                         update_header_and_styles(scroll_to_item=False)
 
                     return handler
 
                 with ui.row().classes(
                     f"w-full items-center justify-between border-b border-l-4"
-                    f" {color_class.split()[1]} py-3 pl-3 pr-2 my-1 rounded-r cursor-pointer"
-                    f" {bg_style}"
+                    f" {color_class.split()[1]} py-3 pl-3 pr-2 my-1 rounded-r cursor-pointer bg-white border-gray-200"
                 ).on("click", make_click_handler(idx)) as row_elem:
 
                     row_containers.append(row_elem)
@@ -192,19 +193,6 @@ def main_interface():
                             ui.label(f"Exemple : {exemple}").classes(
                                 "text-xs italic text-gray-400 mt-0.5"
                             )
-
-                    def make_eval_handler(i):
-                        return lambda e: state["evaluations"].update({i: e.value})
-
-                    with ui.row().classes("items-center gap-2 shrink-0").on(
-                        "click.stop.prevent", lambda: None
-                    ):
-                        ui.radio(
-                            options=["-", "=", "+"],
-                            value=state["evaluations"].get(idx, None),
-                        ).props("inline dense").classes("text-sm").on_value_change(
-                            make_eval_handler(idx)
-                        )
 
 # --- 4. LANCEMENT UNIVERSEL ---
 ui.run(
