@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import pandas as pd
-from aiohttp import web
 from nicegui import ui, app
 
 # --- 1. CONFIGURATION DES CHEMINS ---
@@ -72,7 +71,6 @@ def main_interface():
     row_containers = []
 
     def update_visual_summary():
-        # Calcule le nombre de coches par niveau CECRL
         counts = {niv: 0 for niv in niveaux_disponibles}
         for idx in state["selected_rows"]:
             if idx < len(df):
@@ -81,7 +79,6 @@ def main_interface():
                     if niv.upper() in niv_item:
                         counts[niv] += 1
 
-        # Met à jour les compteurs visuels dans l'en-tête
         for niv, label_elem in badge_refs.items():
             if niv in counts:
                 label_elem.text = str(counts[niv])
@@ -189,6 +186,7 @@ def main_interface():
                 desc = row.get("descripteur", "Description indisponible")
                 exemple = row.get("exemple", "")
                 niveau = row.get("niveau_cecrl", "")
+                tache = str(row.get("tache", ""))
 
                 color_class = get_level_text_color(niveau)
 
@@ -212,9 +210,14 @@ def main_interface():
                     row_containers.append(row_elem)
 
                     with ui.column().classes("flex-1 gap-0.5 pr-2"):
-                        ui.label(str(desc)).classes(
-                            f"text-base font-medium {color_class.split()[0]}"
-                        )
+                        with ui.row().classes("items-center gap-2"):
+                            if tache and tache != "nan":
+                                ui.label(f"T{tache.strip()[-1]}").classes(
+                                    "text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded border shrink-0"
+                                )
+                            ui.label(str(desc)).classes(
+                                f"text-base font-medium {color_class.split()[0]}"
+                            )
                         if pd.notna(exemple) and str(exemple).strip() != "":
                             ui.label(f"Exemple : {exemple}").classes(
                                 "text-xs italic text-gray-400 mt-0.5"
