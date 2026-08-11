@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import pandas as pd
+from aiohttp import web
 from nicegui import ui, app
 
 # --- 1. CONFIGURATION DES CHEMINS ---
@@ -67,7 +68,23 @@ def main_interface():
     }
 
     header_refs = {}
+    badge_refs = {}
     row_containers = []
+
+    def update_visual_summary():
+        # Calcule le nombre de coches par niveau CECRL
+        counts = {niv: 0 for niv in niveaux_disponibles}
+        for idx in state["selected_rows"]:
+            if idx < len(df):
+                niv_item = str(df.iloc[idx].get("niveau_cecrl", "")).strip().upper()
+                for niv in niveaux_disponibles:
+                    if niv.upper() in niv_item:
+                        counts[niv] += 1
+
+        # Met à jour les compteurs visuels dans l'en-tête
+        for niv, label_elem in badge_refs.items():
+            if niv in counts:
+                label_elem.text = str(counts[niv])
 
     def update_header_and_styles(scroll_to_item=True):
         if not (0 <= state["selected_index"] < len(df)):
@@ -103,6 +120,7 @@ def main_interface():
                     remove="bg-green-50 border-green-500 shadow-sm",
                     add="bg-white border-gray-200",
                 )
+        update_visual_summary()
 
     # --- EN-TÊTE FIXE EN HAUT DE L'ÉCRAN ---
     with ui.card().classes(
@@ -152,13 +170,21 @@ def main_interface():
                 "flex-1 px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs truncate"
             )
 
+        # --- SYNTHÈSE VISUELLE DES COCHES PAR NIVEAU ---
+        with ui.row().classes("w-full items-center justify-end gap-1 mt-1 pt-1 border-t border-blue-200 text-xs"):
+            ui.label("Coches :").classes("font-bold text-gray-600 mr-1")
+            for niv in niveaux_disponibles:
+                with ui.row().classes("items-center gap-1 px-1.5 py-0.5 bg-white rounded border shadow-xs"):
+                    ui.label(f"{niv}").classes("font-semibold text-gray-700")
+                    badge_refs[niv] = ui.label("0").classes("font-bold text-green-600")
+
     # --- LISTE DES DESCRIPTEURS ---
     with ui.card().classes("w-full p-3 shadow-md"):
         ui.label(f"Référentiel complet ({len(df)} descripteurs)").classes(
             "font-bold text-base mb-2"
         )
 
-        with ui.scroll_area().classes("w-full h-[70vh] pr-2"):
+        with ui.scroll_area().classes("w-full h-[66vh] pr-2"):
             for idx, row in df.iterrows():
                 desc = row.get("descripteur", "Description indisponible")
                 exemple = row.get("exemple", "")
