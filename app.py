@@ -1,232 +1,285 @@
-import os
-from pathlib import Path
-import pandas as pd
-from nicegui import ui, app
-
-# --- 1. CONFIGURATION DES CHEMINS ---
-json_path = Path("referentiel_tcf.json")
-csv_path = Path("tcf_data.csv")
+from collections import Counter
+from nicegui import ui
 
 
-# --- 2. FONCTION DE COULEUR DU TEXTE PAR NIVEAU ---
-def get_level_text_color(niveau):
-    if not niveau:
-        return "text-gray-800 border-l-gray-300"
-    niv = str(niveau).strip().upper()
-    if "A1" in niv:
-        return "text-blue-700 border-l-blue-500"
-    elif "A2" in niv:
-        return "text-cyan-700 border-l-cyan-500"
-    elif "B1" in niv:
-        return "text-emerald-700 border-l-emerald-500"
-    elif "B2" in niv:
-        return "text-amber-700 border-l-amber-500"
-    elif "C1" in niv:
-        return "text-purple-700 border-l-purple-500"
-    elif "C2" in niv:
-        return "text-rose-700 border-l-rose-500"
-    else:
-        return "text-gray-800 border-l-gray-300"
+class CarouselEvaluationTCF:
 
+  def __init__(self):
+    self.criteres = [
+        {
+            "titre": "Débit",
+            "paliers": [
+                ("A1", "lent"),
+                ("A2", "pause + hésitation"),
+                ("B1", "influence langue maternelle"),
+                ("B2", "longtemps"),
+                ("C1", "sans effort"),
+                ("C2", "sans effort"),
+            ],
+        },
+        {
+            "titre": "Prononciation",
+            "paliers": [
+                ("A1", "des efforts"),
+                ("A2", ""),
+                ("B1", ""),
+                ("B2", "élision, langage oral, sans tension"),
+                ("C1", ""),
+                ("C2", ""),
+            ],
+        },
+        {
+            "titre": "Lexique",
+            "paliers": [
+                ("A1", "mots isolés élémentaire"),
+                ("A2", "limité"),
+                ("B1", "suffisant"),
+                ("B2", "périphrases"),
+                ("C1", "fine nuance"),
+                ("C2", "vaste"),
+            ],
+        },
+        {
+            "titre": "Conjugaison",
+            "paliers": [
+                ("A1", "présent"),
+                ("A2", "passé composé + imparfait"),
+                ("B1", "futur + conditionnel + plus que parfait"),
+                ("B2", ""),
+                ("C1", "futur antérieur + subjonctif"),
+                ("C2", "parfaite"),
+            ],
+        },
+        {
+            "titre": "Syntaxe",
+            "paliers": [
+                ("A1", ""),
+                ("A2", ""),
+                ("B1", ""),
+                ("B2", "+"),
+                ("C1", "++"),
+                ("C2", ""),
+            ],
+        },
+        {
+            "titre": "Connecteurs",
+            "paliers": [
+                ("A1", "et, alors"),
+                ("A2", "et, mais, parce que, après"),
+                ("B1", "que"),
+                ("B2", "premièrement, donc qui"),
+                (
+                    "C1",
+                    (
+                        "cependant, et puis, afin que, dès que, Si, en résumé,"
+                        " a mon avis, comme, bien que"
+                    ),
+                ),
+                ("C2", ""),
+            ],
+        },
+        {
+            "titre": "Sociolinguistique",
+            "paliers": [
+                ("A1", ""),
+                ("A2", "ne conduit pas la conversation"),
+                ("B1", ""),
+                ("B2", "peut garder la parole"),
+                ("C1", ""),
+                ("C2", ""),
+            ],
+        },
+        {
+            "titre": "Questionnement",
+            "paliers": [
+                ("A1", "tu habites où, c'est combien ?"),
+                ("A2", "qu'est ce que, est-ce que, comment ?"),
+                ("B1", "Pourquoi, si, quel?"),
+                ("B2", "pourquoi, quels sont les risques"),
+                ("C1", "jusqu'où"),
+                (
+                    "C2",
+                    (
+                        "Quels sont les critères ? morale ou légale ? Le devoir"
+                        " de secours est-il une obligation"
+                    ),
+                ),
+            ],
+        },
+    ]
 
-# --- 3. INTERFACE PRINCIPALE ---
-@ui.page("/")
-def main_interface():
-    if not csv_path.exists():
-        ui.label(
-            f"Erreur : Le fichier CSV est introuvable à l'emplacement :"
-            f" {csv_path}"
-        ).classes("text-red-500 font-bold")
-        return
+    self.selections = {}
+    self.init_ui()
 
-    try:
-        df = pd.read_csv(csv_path, sep=";", encoding="utf-8")
-    except Exception as e:
-        ui.label(f"Erreur lors de la lecture du CSV : {e}").classes(
-            "text-red-500 font-bold"
+  def init_ui(self):
+    with ui.column().classes("w-full min-h-screen bg-slate-100 p-6 items-center"):
+      with ui.row().classes(
+          "w-full max-w-5xl justify-between items-center mb-4"
+      ):
+        with ui.column().classes("gap-0"):
+          ui.label(
+              "Évaluation Orale TCF — Grille et Bilan Global"
+          ).classes("text-2xl font-extrabold text-slate-800")
+          ui.label(
+              "Renseignez les critères et consultez la synthèse finale ci-dessous"
+          ).classes("text-sm text-slate-500")
+
+      # --- CARROUSEL HORIZONTAL DES CRITÈRES ---
+      with ui.row().classes(
+          "w-full max-w-7xl overflow-x-auto flex-nowrap gap-6 p-4 items-stretch"
+          " no-scrollbar"
+      ):
+        for idx, critere in enumerate(self.criteres):
+          self.creer_carte_critere(idx, critere)
+
+      # --- PANNEAU D'ÉVALUATION FINALE (SYNTHÈSE) ---
+      with ui.card().classes(
+          "w-full max-w-5xl p-6 bg-white shadow-md border border-slate-200"
+          " rounded-2xl mt-6 flex flex-col gap-4"
+      ):
+        ui.label("Synthèse & Évaluation Finale du Candidat").classes(
+            "text-lg font-bold text-slate-800 border-b pb-2"
         )
-        return
 
-    df.columns = [c.strip().lower() for c in df.columns]
+        with ui.row().classes("w-full justify-between items-center gap-4"):
+          with ui.column().classes("flex-grow"):
+            ui.label(
+                "Tendance suggérée par les critères :"
+            ).classes("text-xs text-slate-400 font-bold uppercase")
+            self.lbl_tendance = ui.label(
+                "En attente d'évaluations..."
+            ).classes("text-sm font-semibold text-blue-700")
 
-    if "descripteur" not in df.columns:
-        ui.label("Colonne 'descripteur' introuvable dans le fichier CSV.").classes(
-            "text-red-500"
+          with ui.row().classes("items-center gap-2"):
+            ui.label("Niveau Global Attribué :").classes(
+                "text-sm font-bold text-slate-700"
+            )
+            self.select_niveau_global = ui.select(
+                options=["A1", "A2", "B1", "B2", "C1", "C2"],
+                value="B1",
+                label="Niveau",
+            ).props("dense outlined").classes("w-28")
+
+        self.textarea_synthese = (
+            ui.textarea(
+                placeholder=(
+                    "Ajoutez ici votre appréciation globale ou justification"
+                    " pour le jury..."
+                )
+            )
+            .props("outlined dense")
+            .classes("w-full text-xs bg-slate-50")
         )
-        return
 
-    niveaux_disponibles = (
-        sorted(df["niveau_cecrl"].dropna().unique().tolist())
-        if "niveau_cecrl" in df.columns
-        else []
+        ui.button(
+            "Valider et archiver l'évaluation", on_click=self.valider_evaluation
+        ).classes("bg-blue-600 text-white font-bold self-end px-4 py-2 rounded")
+
+  def creer_carte_critere(self, idx, critere):
+    with ui.card().classes(
+        "flex-shrink-0 w-80 p-5 bg-white shadow-md border border-slate-200"
+        " rounded-2xl flex flex-col justify-between hover:shadow-lg"
+        " transition-shadow"
+    ):
+      with ui.column().classes("w-full gap-3"):
+        ui.label(critere["titre"]).classes(
+            "text-lg font-bold text-slate-700 border-b pb-2 border-slate-100"
+        )
+
+        lbl_choix = ui.label("Non noté").classes(
+            "text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded"
+            " w-fit"
+        )
+        setattr(self, f"lbl_choix_{idx}", lbl_choix)
+
+        with ui.column().classes("w-full gap-2.5 mt-2"):
+          for p_idx, (niveau, desc) in enumerate(critere["paliers"]):
+            self.creer_ligne_epuree(idx, p_idx, critere, niveau, desc)
+
+  def creer_ligne_epuree(self, crit_idx, pal_idx, critere, niveau, description):
+    classes_couleurs = {
+        "A1": "bg-sky-100 text-sky-800 hover:bg-sky-200",
+        "A2": "bg-blue-200 text-blue-900 hover:bg-blue-300",
+        "B1": "bg-blue-400 text-white hover:bg-blue-500",
+        "B2": "bg-blue-600 text-white hover:bg-blue-700",
+        "C1": "bg-blue-800 text-white hover:bg-blue-900",
+        "C2": "bg-slate-900 text-white hover:bg-black",
+    }
+    style_badge = classes_couleurs.get(
+        niveau, "bg-blue-100 text-blue-800 hover:bg-blue-200"
     )
 
-    state = {
-        "selected_index": 0,
-        "selected_rows": set(),  # Stocke les indices des boîtes cliquées (vertes)
-    }
-
-    header_refs = {}
-    badge_refs = {}
-    row_containers = []
-
-    def update_visual_summary():
-        counts = {niv: 0 for niv in niveaux_disponibles}
-        for idx in state["selected_rows"]:
-            if idx < len(df):
-                niv_item = str(df.iloc[idx].get("niveau_cecrl", "")).strip().upper()
-                for niv in niveaux_disponibles:
-                    if niv.upper() in niv_item:
-                        counts[niv] += 1
-
-        for niv, label_elem in badge_refs.items():
-            if niv in counts:
-                label_elem.text = str(counts[niv])
-
-    def update_header_and_styles(scroll_to_item=True):
-        if not (0 <= state["selected_index"] < len(df)):
-            return
-
-        row_data = df.iloc[state["selected_index"]]
-        c_niv = str(row_data.get("niveau_cecrl", "-"))
-        c_tach = str(row_data.get("tache", "-"))
-        c_comp = str(row_data.get("competence", "-"))
-
-        if "niveau_label" in header_refs:
-            header_refs["niveau_label"].text = c_niv
-        if "tache_label" in header_refs:
-            header_refs["tache_label"].text = c_tach
-        if "comp_label" in header_refs:
-            header_refs["comp_label"].text = c_comp
-
-        for i, container in enumerate(row_containers):
-            if i == state["selected_index"] and scroll_to_item:
-                container.run_method(
-                    "scrollIntoView", {"behavior": "smooth", "block": "center"}
-                )
-
-    def refresh_row_styles():
-        for i, container in enumerate(row_containers):
-            if i in state["selected_rows"]:
-                container.classes(
-                    remove="bg-white border-gray-200",
-                    add="bg-green-50 border-green-500 shadow-sm",
-                )
-            else:
-                container.classes(
-                    remove="bg-green-50 border-green-500 shadow-sm",
-                    add="bg-white border-gray-200",
-                )
-        update_visual_summary()
-
-    # --- EN-TÊTE FIXE EN HAUT DE L'ÉCRAN ---
-    with ui.card().classes(
-        "w-full p-2 mb-2 bg-blue-50 border border-blue-200 shadow-sm sticky top-0 z-50"
+    with ui.row().classes(
+        "w-full p-2 bg-slate-50 rounded-lg items-center gap-2 border"
+        " border-slate-100"
     ):
-        with ui.row().classes("w-full items-center justify-between gap-2"):
 
-            def on_jump_niveau(e):
-                nouveau_niveau = e.value
-                if nouveau_niveau:
-                    match = df[
-                        df["niveau_cecrl"]
-                        .astype(str)
-                        .str.strip()
-                        .str.upper()
-                        == str(nouveau_niveau).strip().upper()
-                    ]
-                    if not match.empty:
-                        state["selected_index"] = match.index[0]
-                        update_header_and_styles(scroll_to_item=True)
-                        jump_select.value = None
+      async def clic_selectionner():
+        self.selections[critere["titre"]] = niveau
 
-            jump_select = (
-                ui.select(
-                    options=niveaux_disponibles,
-                    value=None,
-                )
-                .classes("bg-white rounded min-w-[90px]")
-                .props('dense outlined label="Niveau..."')
-                .on_value_change(on_jump_niveau)
+        lbl = getattr(self, f"lbl_choix_{crit_idx}")
+        lbl.text = f"Niveau {niveau}"
+        lbl.classes(
+            replace=(
+                "text-xs font-bold text-white bg-blue-600 px-2 py-1 rounded w-fit"
             )
-
-            row_data_init = df.iloc[state["selected_index"]]
-            init_niv = str(row_data_init.get("niveau_cecrl", "-"))
-            init_tach = str(row_data_init.get("tache", "-"))
-            init_comp = str(row_data_init.get("competence", "-"))
-
-            header_refs["niveau_label"] = ui.label(init_niv).classes(
-                "px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs shrink-0"
-            )
-
-            header_refs["tache_label"] = ui.label(init_tach).classes(
-                "px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs shrink-0"
-            )
-
-            header_refs["comp_label"] = ui.label(init_comp).classes(
-                "flex-1 px-2 py-1 bg-white rounded border text-blue-900 font-semibold text-center text-sm shadow-xs truncate"
-            )
-
-        # --- SYNTHÈSE VISUELLE DES COCHES PAR NIVEAU ---
-        with ui.row().classes("w-full items-center justify-end gap-1 mt-1 pt-1 border-t border-blue-200 text-xs"):
-            ui.label("Coches :").classes("font-bold text-gray-600 mr-1")
-            for niv in niveaux_disponibles:
-                with ui.row().classes("items-center gap-1 px-1.5 py-0.5 bg-white rounded border shadow-xs"):
-                    ui.label(f"{niv}").classes("font-semibold text-gray-700")
-                    badge_refs[niv] = ui.label("0").classes("font-bold text-green-600")
-
-    # --- LISTE DES DESCRIPTEURS ---
-    with ui.card().classes("w-full p-3 shadow-md"):
-        ui.label(f"Référentiel complet ({len(df)} descripteurs)").classes(
-            "font-bold text-base mb-2"
         )
 
-        with ui.scroll_area().classes("w-full h-[66vh] pr-2"):
-            for idx, row in df.iterrows():
-                desc = row.get("descripteur", "Description indisponible")
-                exemple = row.get("exemple", "")
-                niveau = row.get("niveau_cecrl", "")
-                tache = str(row.get("tache", ""))
+        self.mettre_a_jour_tendance()
+        ui.notify(
+            f"{critere['titre']} validé à {niveau}",
+            color="positive",
+            position="top",
+        )
 
-                color_class = get_level_text_color(niveau)
+      ui.button(niveau, on_click=clic_selectionner).props(
+          "flat dense"
+      ).classes(
+          f"text-xs font-extrabold px-2 py-1 rounded transition-colors"
+          f" {style_badge}"
+      ).tooltip(
+          f"Cliquer pour valider le niveau {niveau}"
+      )
 
-                def make_click_handler(i):
-                    def handler():
-                        state["selected_index"] = i
-                        if i in state["selected_rows"]:
-                            state["selected_rows"].remove(i)
-                        else:
-                            state["selected_rows"].add(i)
-                        refresh_row_styles()
-                        update_header_and_styles(scroll_to_item=False)
+      input_desc = (
+          ui.textarea(value=description)
+          .props("autogrow dense borderless")
+          .classes("text-xs text-slate-700 flex-grow bg-white px-2 py-1 rounded")
+      )
 
-                    return handler
+      def mettre_a_jour_texte(e):
+        critere["paliers"][pal_idx] = (niveau, e.value)
 
-                with ui.row().classes(
-                    f"w-full items-center justify-between border-b border-l-4"
-                    f" {color_class.split()[1]} py-3 pl-3 pr-2 my-1 rounded-r cursor-pointer bg-white border-gray-200"
-                ).on("click", make_click_handler(idx)) as row_elem:
+      input_desc.on("update:model-value", mettre_a_jour_texte)
 
-                    row_containers.append(row_elem)
+  def mettre_a_jour_tendance(self):
+    if not self.selections:
+      self.lbl_tendance.text = "En attente d'évaluations..."
+      return
 
-                    with ui.column().classes("flex-1 gap-0.5 pr-2"):
-                        with ui.row().classes("items-center gap-2"):
-                            if tache and tache != "nan":
-                                ui.label(f"T{tache.strip()[-1]}").classes(
-                                    "text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded border shrink-0"
-                                )
-                            ui.label(str(desc)).classes(
-                                f"text-base font-medium {color_class.split()[0]}"
-                            )
-                        if pd.notna(exemple) and str(exemple).strip() != "":
-                            ui.label(f"Exemple : {exemple}").classes(
-                                "text-xs italic text-gray-400 mt-0.5"
-                            )
+    niveaux_notes = list(self.selections.values())
+    compte = Counter(niveaux_notes)
+    niveau_frequent, occurrence = compte.most_common(1)[0]
 
-# --- 4. LANCEMENT UNIVERSEL ---
-ui.run(
-    port=int(os.environ.get("PORT", 8080)),
-    host="0.0.0.0",
-    storage_secret="tcf_secret_key",
-    reload=False,
-)
+    recap_str = " | ".join([f"{k}: {v}" for k, v in self.selections.items()])
+    self.lbl_tendance.text = (
+        f"Tendance majoritaire : {niveau_frequent} ({occurrence}"
+        f" critère(s)) — Détails : [{recap_str}]"
+    )
+    self.select_niveau_global.value = niveau_frequent
+
+  def valider_evaluation(self):
+    niveau_final = self.select_niveau_global.value
+    # Notification simple sans l'argument 'type="ongoing"' pour éviter l'animation en boucle
+    ui.notify(
+        f"Évaluation enregistrée avec succès ! Niveau global : {niveau_final}",
+        color="positive",
+    )
+
+
+@ui.page("/")
+def main_page():
+  CarouselEvaluationTCF()
+
+
+ui.run(port=8080, reload=False)
